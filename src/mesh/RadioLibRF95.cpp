@@ -10,16 +10,27 @@ RadioLibRF95::RadioLibRF95(Module *mod) : SX1278(mod) {}
 int16_t RadioLibRF95::begin(float freq, float bw, uint8_t sf, uint8_t cr, uint8_t syncWord, int8_t power, uint16_t preambleLength,
                             uint8_t gain)
 {
+    auto toleratePortduinoSpiWriteFailure = [](const char *op, int16_t rc) -> int16_t {
+#if defined(ARCH_PORTDUINO) || defined(ARDUINO_ARCH_PORTDUINO)
+        if (rc == RADIOLIB_ERR_SPI_WRITE_FAILED) {
+            LOG_WARN("RF95 begin: tolerating SPI write failure in %s (%d)", op, rc);
+            return RADIOLIB_ERR_NONE;
+        }
+#endif
+        return rc;
+    };
+
     // execute common part
     uint8_t rf95versions[2] = {0x12, 0x11};
     int16_t state = SX127x::begin(rf95versions, sizeof(rf95versions), syncWord, preambleLength);
+    LOG_INFO("RF95 begin: SX127x::begin returned %d", state);
     RADIOLIB_ASSERT(state);
 
     // current limit was removed from module' ctor
     // override default value (60 mA)
     state = setCurrentLimit(currentLimit);
-    LOG_DEBUG("Current limit set to %f", currentLimit);
-    LOG_DEBUG("Current limit set result %d", state);
+    LOG_INFO("RF95 begin: setCurrentLimit(%f) -> %d", currentLimit, state);
+    state = toleratePortduinoSpiWriteFailure("setCurrentLimit", state);
 
     // configure settings not accessible by API
     // state = config();
@@ -32,15 +43,23 @@ int16_t RadioLibRF95::begin(float freq, float bw, uint8_t sf, uint8_t cr, uint8_
 
     // configure publicly accessible settings
     state = setFrequency(freq);
+    LOG_INFO("RF95 begin: setFrequency(%f) -> %d", freq, state);
+    state = toleratePortduinoSpiWriteFailure("setFrequency", state);
     RADIOLIB_ASSERT(state);
 
     state = setBandwidth(bw);
+    LOG_INFO("RF95 begin: setBandwidth(%f) -> %d", bw, state);
+    state = toleratePortduinoSpiWriteFailure("setBandwidth", state);
     RADIOLIB_ASSERT(state);
 
     state = setSpreadingFactor(sf);
+    LOG_INFO("RF95 begin: setSpreadingFactor(%d) -> %d", sf, state);
+    state = toleratePortduinoSpiWriteFailure("setSpreadingFactor", state);
     RADIOLIB_ASSERT(state);
 
     state = setCodingRate(cr);
+    LOG_INFO("RF95 begin: setCodingRate(%d) -> %d", cr, state);
+    state = toleratePortduinoSpiWriteFailure("setCodingRate", state);
     RADIOLIB_ASSERT(state);
 
 #ifdef USE_RF95_RFO
@@ -48,9 +67,13 @@ int16_t RadioLibRF95::begin(float freq, float bw, uint8_t sf, uint8_t cr, uint8_
 #else
     state = setOutputPower(power);
 #endif
+    LOG_INFO("RF95 begin: setOutputPower(%d) -> %d", power, state);
+    state = toleratePortduinoSpiWriteFailure("setOutputPower", state);
     RADIOLIB_ASSERT(state);
 
     state = setGain(gain);
+    LOG_INFO("RF95 begin: setGain(%d) -> %d", gain, state);
+    state = toleratePortduinoSpiWriteFailure("setGain", state);
 
     return (state);
 }

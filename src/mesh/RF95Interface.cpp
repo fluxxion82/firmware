@@ -177,8 +177,8 @@ bool RF95Interface::init()
 
     int res = lora->begin(getFreq(), bw, sf, cr, syncWord, power, preambleLength);
     LOG_INFO("RF95 init result %d", res);
-    if (res == RADIOLIB_ERR_CHIP_NOT_FOUND || res == RADIOLIB_ERR_SPI_CMD_FAILED)
-        return false;
+    if (res != RADIOLIB_ERR_NONE)
+        LOG_WARN("RF95 begin() continuing despite error %d", res);
 
     LOG_INFO("Frequency set to %f", getFreq());
     LOG_INFO("Bandwidth set to %f", bw);
@@ -189,16 +189,25 @@ bool RF95Interface::init()
 
     if (res == RADIOLIB_ERR_NONE)
         res = lora->setCRC(RADIOLIB_SX126X_LORA_CRC_ON);
+    LOG_INFO("RF95 init: setCRC -> %d", res);
+#if defined(ARCH_PORTDUINO) || defined(ARDUINO_ARCH_PORTDUINO)
+    if (res == RADIOLIB_ERR_SPI_WRITE_FAILED) {
+        LOG_WARN("RF95 init: tolerating SPI write failure in setCRC");
+        res = RADIOLIB_ERR_NONE;
+    }
+#endif
 
     if (res == RADIOLIB_ERR_NONE)
         startReceive(); // start receiving
 
+    LOG_INFO("RF95 init: final result %d", res);
     return res == RADIOLIB_ERR_NONE;
 }
 
 void RF95Interface::disableInterrupt()
 {
-    lora->clearDio0Action();
+    if (lora)
+        lora->clearDio0Action();
 }
 
 bool RF95Interface::reconfigure()
@@ -224,17 +233,17 @@ bool RF95Interface::reconfigure()
     err = lora->setSyncWord(syncWord);
     if (err != RADIOLIB_ERR_NONE)
         LOG_ERROR("RF95 setSyncWord %s%d", radioLibErr, err);
-    assert(err == RADIOLIB_ERR_NONE);
+    if (err != RADIOLIB_ERR_NONE) return false;
 
     err = lora->setCurrentLimit(currentLimit);
     if (err != RADIOLIB_ERR_NONE)
         LOG_ERROR("RF95 setCurrentLimit %s%d", radioLibErr, err);
-    assert(err == RADIOLIB_ERR_NONE);
+    if (err != RADIOLIB_ERR_NONE) return false;
 
     err = lora->setPreambleLength(preambleLength);
     if (err != RADIOLIB_ERR_NONE)
         LOG_ERROR("RF95 setPreambleLength %s%d", radioLibErr, err);
-    assert(err == RADIOLIB_ERR_NONE);
+    if (err != RADIOLIB_ERR_NONE) return false;
 
     err = lora->setFrequency(getFreq());
     if (err != RADIOLIB_ERR_NONE)
@@ -271,7 +280,7 @@ void RF95Interface::setStandby()
     int err = lora->standby();
     if (err != RADIOLIB_ERR_NONE)
         LOG_ERROR("RF95 standby %s%d", radioLibErr, err);
-    assert(err == RADIOLIB_ERR_NONE);
+    if (err != RADIOLIB_ERR_NONE) { LOG_WARN("setStandby failed"); return; }
 
     isReceiving = false; // If we were receiving, not any more
     disableInterrupt();
@@ -295,7 +304,7 @@ void RF95Interface::startReceive()
     int err = lora->startReceive();
     if (err != RADIOLIB_ERR_NONE)
         LOG_ERROR("RF95 startReceive %s%d", radioLibErr, err);
-    assert(err == RADIOLIB_ERR_NONE);
+    if (err != RADIOLIB_ERR_NONE) { LOG_WARN("startReceive failed"); return; }
 
     isReceiving = true;
 
@@ -317,7 +326,7 @@ bool RF95Interface::isChannelActive()
     }
     if (result != RADIOLIB_CHANNEL_FREE)
         LOG_ERROR("RF95 isChannelActive %s%d", radioLibErr, result);
-    assert(result != RADIOLIB_ERR_WRONG_MODEM);
+    if (result == RADIOLIB_ERR_WRONG_MODEM) { LOG_WARN("RF95 isChannelActive wrong modem, treating as busy"); return true; }
 
     // LOG_DEBUG("Channel is free!");
     return false;
