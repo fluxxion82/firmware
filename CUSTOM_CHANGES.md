@@ -17,49 +17,47 @@ to get it working on the Orange Pi Zero 3 with RFM95W LoRa module.
 
 ## Git-Tracked Changes
 
-### 1. src/mesh/RadioLibInterface.cpp
+### 1. src/mesh/RF95Interface.cpp
 
-**Purpose**: Debug logging for SPI transfers
+**Purpose**: Make RF95 init/reconfigure paths more resilient on Portduino/Linux.
 
-```diff
-+#include <cstdio>
- #include "RadioLibInterface.h"
-...
- #if ARCH_PORTDUINO
- void LockingArduinoHal::spiTransfer(uint8_t *out, size_t len, uint8_t *in)
- {
-+    fprintf(stderr, "LOCKING spiTransfer: len=%zu out[0]=0x%02x\n", len, out[0]);
-+    fflush(stderr);
-     spi->transfer(out, in, len);
-+    fprintf(stderr, "LOCKING result: in[0]=0x%02x in[1]=0x%02x\n", in[0], len > 1 ? in[1] : 0);
-+    fflush(stderr);
- }
- #endif
-```
+Key changes:
+- tolerate specific Portduino SPI write failures during init
+- replace some hard assertions with guarded returns and warnings
+- add extra init logging to improve bring-up diagnostics
+
+### 2. src/mesh/RadioLibRF95.cpp
+
+**Purpose**: Improve RF95 initialization robustness on Orange Pi Zero 3.
+
+Key changes:
+- add detailed step-by-step init logging
+- tolerate `RADIOLIB_ERR_SPI_WRITE_FAILED` in selected Portduino tuning paths
+- retain standard behavior for non-Portduino targets
 
 ## Non-Git-Tracked Changes (.pio/libdeps)
 
-These changes are in downloaded dependencies and will be lost if dependencies are re-downloaded.
+These are runtime/dependency patches applied on-device and are not part of the
+firmware source tree. They can be lost whenever PlatformIO refreshes packages.
 
-### 2. .pio/libdeps/native/RadioLib/src/Module.cpp
+To preserve the exact Pi state, snapshot copies are stored under:
+`orangepi/runtime-captures/`
 
-**Purpose**: Debug logging for SPI register operations
+### 3. framework-portduino LinuxGPIOPin patch (Pi-local)
 
-Added fprintf statements in:
-- `SPIsetRegValue()` - logs register writes with address, value, bit ranges
-- `SPIreadRegister()` - logs register reads
-- `SPIwriteRegister()` - logs register writes
+Original Pi path:
+- `/home/sterling/.platformio/packages/framework-portduino/cores/portduino/linux/gpio/LinuxGPIOPin.cpp`
 
-### 3. .pio/libdeps/native/RadioLib/src/modules/SX127x/SX127x.cpp
+Captured snapshot:
+- `orangepi/runtime-captures/LinuxGPIOPin.cpp.patched`
 
-**Purpose**: Debug logging for SX127x initialization sequence
+### 4. RadioLib SX127x patch (Pi-local)
 
-Added fprintf statements in `SX127x::begin()` to trace:
-- findChip() calls and results
-- standby() calls and results
-- config() calls and results
-- Modem mode checks
-- setSyncWord, setCurrentLimit, setPreambleLength, invertIQ results
+Original Pi path:
+- `/home/sterling/firmware/.pio/libdeps/native/RadioLib/src/modules/SX127x/SX127x.cpp`
+
+Captured snapshot:
+- `orangepi/runtime-captures/SX127x.cpp.patched`
 
 ## Known Issues
 
