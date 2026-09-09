@@ -10,14 +10,14 @@ source tree** and would otherwise be lost.
 
 - `LinuxGPIOPin.cpp.patched`
   - Source on Pi:
-    - `/home/sterling/.platformio/packages/framework-portduino/cores/portduino/linux/gpio/LinuxGPIOPin.cpp`
+    - `~/.platformio/packages/framework-portduino/cores/portduino/linux/gpio/LinuxGPIOPin.cpp`
   - Why it matters:
     - Contains libgpiod v2 safety/retry/null-guard behavior that reduced GPIO
       assertion/abort issues during startup.
 
 - `SX127x.cpp.patched`
   - Source on Pi:
-    - `/home/sterling/firmware/.pio/libdeps/native/RadioLib/src/modules/SX127x/SX127x.cpp`
+    - `~/firmware/.pio/libdeps/native/RadioLib/src/modules/SX127x/SX127x.cpp`
   - Why it matters:
     - Contains additional Orange Pi troubleshooting instrumentation and
       tolerance for a Portduino-specific `invertIQ(false)` write failure path.

@@ -46,7 +46,7 @@ To preserve the exact Pi state, snapshot copies are stored under:
 ### 3. framework-portduino LinuxGPIOPin patch (Pi-local)
 
 Original Pi path:
-- `/home/sterling/.platformio/packages/framework-portduino/cores/portduino/linux/gpio/LinuxGPIOPin.cpp`
+- `~/.platformio/packages/framework-portduino/cores/portduino/linux/gpio/LinuxGPIOPin.cpp`
 
 Captured snapshot:
 - `orangepi/runtime-captures/LinuxGPIOPin.cpp.patched`
@@ -54,7 +54,7 @@ Captured snapshot:
 ### 4. RadioLib SX127x patch (Pi-local)
 
 Original Pi path:
-- `/home/sterling/firmware/.pio/libdeps/native/RadioLib/src/modules/SX127x/SX127x.cpp`
+- `~/firmware/.pio/libdeps/native/RadioLib/src/modules/SX127x/SX127x.cpp`
 
 Captured snapshot:
 - `orangepi/runtime-captures/SX127x.cpp.patched`
@@ -143,8 +143,8 @@ Note: gpioset v2.x syntax is: `gpioset -c gpiochip1 71=0`
 ## Build Instructions
 
 ```bash
-cd /home/sterling/firmware
-source /home/sterling/meshtastic-venv/bin/activate
+cd ~/firmware
+source ~/meshtastic-venv/bin/activate
 pio run -e native
 # Binary output: .pio/build/native/program
 ```
